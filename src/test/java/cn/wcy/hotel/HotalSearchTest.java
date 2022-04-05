@@ -28,9 +28,17 @@ import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.SearchHits;
+import org.elasticsearch.search.aggregations.AggregationBuilders;
+import org.elasticsearch.search.aggregations.Aggregations;
+import org.elasticsearch.search.aggregations.bucket.terms.Terms;
 import org.elasticsearch.search.fetch.subphase.highlight.HighlightBuilder;
 import org.elasticsearch.search.fetch.subphase.highlight.HighlightField;
 import org.elasticsearch.search.sort.SortOrder;
+import org.elasticsearch.search.suggest.Suggest;
+import org.elasticsearch.search.suggest.SuggestBuilder;
+import org.elasticsearch.search.suggest.SuggestBuilders;
+import org.elasticsearch.search.suggest.completion.CompletionSuggestion;
+import org.elasticsearch.search.suggest.completion.CompletionSuggestionBuilder;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -61,7 +69,7 @@ public class HotalSearchTest {
     @BeforeEach
     void setUp() {
         this.client = new RestHighLevelClient(RestClient.builder(
-                HttpHost.create("http://ip:9200")
+                HttpHost.create("http://yourIp:9200")
         ));
     }
 
@@ -156,6 +164,59 @@ public class HotalSearchTest {
     }
 
 
+    @Test
+    void testAgg() throws IOException {
+        //准备request
+        SearchRequest request = new SearchRequest("hotel");
+
+        //sort from
+        request.source().size(0);
+        request.source().aggregation(AggregationBuilders.terms("brandAgg").field("brand").size(10));
+
+        //发送请求
+        SearchResponse search = client.search(request, RequestOptions.DEFAULT);
+
+        //解析响应
+        Aggregations aggregations = search.getAggregations();
+        Terms brandAgg = aggregations.get("brandAgg");
+        List<? extends Terms.Bucket> buckets = brandAgg.getBuckets();
+        for (Terms.Bucket bucket : buckets) {
+            System.out.println(bucket.getKeyAsString()+" : "+bucket.getDocCount());
+        }
+        handleResponse(search);
+    }
+
+    @Test
+    void testSuggestion() {
+        //准备request
+        SearchRequest request = new SearchRequest("hotel");
+
+        //sort from
+
+        request
+                .source()
+                .suggest(new SuggestBuilder()
+                        .addSuggestion("suggestions", SuggestBuilders
+                                .completionSuggestion("suggestion")
+                                .prefix("hz")
+                                .skipDuplicates(true)
+                                .size(10)
+                               ));
+        //发送请求
+        try {
+            SearchResponse search = client.search(request, RequestOptions.DEFAULT);
+            Suggest suggest = search.getSuggest();
+            CompletionSuggestion suggestions = suggest.getSuggestion("suggestions");
+            for (CompletionSuggestion.Entry entry : suggestions.getEntries()) {
+                for (CompletionSuggestion.Entry.Option option : entry) {
+                    System.out.println(option.getText().string());
+                }
+            }
+            System.out.println(search);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 
     private void handleResponse(SearchResponse search) {
         //解析响应

@@ -6,6 +6,12 @@ spring:
     username: tb_hotel
     password: wcy123456
     driver-class-name: com.mysql.cj.jdbc.Driver
+  rabbitmq:
+    host: 119.91.231.173
+    port: 5672
+    username: wcy
+    password: 123456
+    virtual-host: /
 logging:
   level:
     cn.wcy: debug

@@ -115,7 +115,7 @@ public class HotalIndexTest {
     @BeforeEach
     void setUp() {
         this.client = new RestHighLevelClient(RestClient.builder(
-                HttpHost.create("http://ip:9200")
+                HttpHost.create("http://yourIp:9200")
         ));
     }
 
